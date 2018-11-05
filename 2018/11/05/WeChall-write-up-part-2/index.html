@@ -1,0 +1,603 @@
+
+<!DOCTYPE html>
+<html lang="zh-cn">
+    
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="generator" content="Grow with AGGmie">
+    <title>WeChall write up part 2 - Grow with AGGmie</title>
+    <meta name="author" content="AGGmie">
+    
+    
+    
+        <link rel="alternate" type="application/atom+xml" title="RSS" href="/atom.xml">
+    
+    <script type="application/ld+json">{"@context":"http://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"AGGmie","sameAs":["https://github.com/AGGmie"],"image":"1.jpg"},"articleBody":" \nwechall 第二部分writeup 在被血虐后的发X涂墙\n \nPHP 0817 (PHP, Exploit)先来点PHP预备知识，PHP在比较字符串和数字的时候，如果字符串为不可以转换为数字的字符组成的，那么就让其值默认为0，还有一些其他情况贴个学习链接：\nhttps://blog.csdn.net/auuuuuuuu/article/details/79621635\n所以在这里我们直接构造payload\npayload: ?which=solution\n就可以包含solution.php了。另外switch语句，如果case里面没有包含break，他是从他找到对应的那条开始一条一条执行的。所以从case 0开始case 1,case 2然后break退出。\nTraining: Crypto - Transposition I (Crypto, Training)观察一下就发现两个字符为一对调换顺序，直接上脚本。\n12345cipherText = \"oWdnreuf.lY uoc nar ae dht eemssga eaw yebttrew eh nht eelttre sra enic roertco drre . Ihtni koy uowlu dilekt  oes eoyrup sawsro don:wp cdhlhronch.p\"plainText = \"\"for i in range(0,len(cipherText),2):    plainText += cipherText[i+1] + cipherText[i]print (plainText)\nTraining: Crypto - Caesar II (Crypto, Training)凯撒加密理论上加密空间为26个英文字母，这里把符号用ASCii表示，扩充了加密空间。通过偏移ASCii值达到加密，我这里直接暴力破解了偏移量，得出结果。\n123456789file = open('input.txt')inputList = []for line in file.readlines():    inputList += line.split()for i in range(100):    outputStr = ''    for ASCii in inputList:        outputStr += chr(int(ASCii,16)+i)    print(outputStr)\nTraining: MySQL I (MySQL, Exploit, Training)十分基础的sql注入，对用户输入的用户名完全没做处理。所以在用户名输入 admin ‘ and 1=1 # 密码随便输入一个就可以注入成功\nTraining: MySQL II (MySQL, Exploit, Training)这道题的和I的变化就是把账户和密码分开比对了，所以没办法使用简单的万能密码登录。但是可以发现用户名依然没有被处理直接放在查询语句。这里使用到的小技巧是sql union查询注入。先简单介绍一下union查询。\nunion查询是将两次查询结果合并为一次的查询方式。举个栗子：\n例如一个查询为SELECT username,password FROM users_1 返回的值为\n\n\n\nusername\npassword\n\n\n\n\nadmin\nadmin\n\n\nAGGmie\n23333\n\n\n\n使用union查询SELECT username,password FROM users_1 union SELECT null,null\n\n\n\nusername\npassword\n\n\n\n\nadmin\nadmin\n\n\nAGGmie\n23333\n\n\nnull\nnull\n\n\n\n可以发现他把两次查询的结果一起返回在一个集合中了。\nunion查询有两个要求：\n1.所有查询列数必须相同，e.g.如果刚刚我union select null,null,null就会报错。\n2.数据类型必须兼容。因此爆字段数时经常用null来避免不兼容（也有习惯用1,2,3的不过也有可能不兼容）\n回到这道题：\n123456789101112131415161718192021222324$password = md5($password);              $query = \"SELECT * FROM users WHERE username='$username'\";              if (false === ($result = $db-&gt;queryFirst($query))) &#123;               echo GWF_HTML::error('Auth2', $chall-&gt;lang('err_unknown'), false);               return false;       &#125;                     #############################       ### This is the new check ###       if ($result['password'] !== $password) &#123;               echo GWF_HTML::error('Auth2', $chall-&gt;lang('err_password'), false);               return false;       &#125; #  End of the new code  ###       #############################                     echo GWF_HTML::message('Auth2', $chall-&gt;lang('msg_welcome_back', array(htmlspecialchars($result['username']))), false);              if (strtolower($result['username']) === 'admin') &#123;               $chall-&gt;onChallengeSolved(GWF_Session::getUserID());       &#125;\n这段代码对于登录的判断如下：\n先将用户提交的password MD5加密，然后执行查询语句，通过用户的username查询数据库中的password，如果查询出的password与用户输入的password不相等（都是MD5加密的）那么登录失败，如果相等，且username为admin，就成功登录admin账号。\n所以我们可以对这句查询语句动动手脚：\n1$query = \"SELECT * FROM users WHERE username='$username'\";\n如果我们知道字段长，再把我们构造的username和password插到查询结果就大功告成了。 这是union查询登场!通过在username构造payload:-1&#39; union select null,null,null# 没有报错可以得到字段数为3,。\n然后再把我们自己构造的admin登录名和密码插入到查询结果-1&#39; union select null,&#39;admin&#39;,md5(&#39;admin&#39;)#\npassword中输入admin,可以发现登陆成功，这里要注意要payload里密码要md5加密。\nTraining: Register Globals (Exploit, PHP, Training)首先了解一下register_globals参数是做什么的，这个参数如果状态时打开的，所以传递进来的值都是全局变量。\n举个栗子：\n正常我们get或post提交什么信息应该都是通过$_GET[&#39;xxx&#39;] 或者 $_POST[&#39;xxx&#39;]来接受值的。如果register_globals开了，那么我们就可以直接通过$xxx来接受值。这就十分的危险了，也就是说用户可以通过get或者post直接改变变量的值。在这道题，我们阅读源代码可以看到下面这一段：\n123456if (isset($login))&#123;        echo GWF_HTML::message('Register Globals', $chall-&gt;lang('msg_welcome_back', array(htmlspecialchars($login[0]), htmlspecialchars($login[1]))));        if (strtolower($login[0]) === 'admin') &#123;                $chall-&gt;onChallengeSolved(GWF_Session::getUserID());        &#125;&#125;\n这一段中重要的就是如果login[0]===‘admin’,那么我们就可以以admin用户的身份登录了。又提到这里的register_globals是开启的，那就可以直接用GET请求把login[0]赋值为‘admin’就可以直接登录了\npayload: ?login[0]=admin\nTraining: Baconian (Stegano, Encoding, Crypto, Training)这道题是一个培根加密，实际上是一种二进制加密，具体加密方法如下：\n​    明文 -&gt; 各个字母在字母表中位置 -&gt; 将位置转换为五位二进制 -&gt; 将二进制0改为A，1改为B -&gt; 用小写表示A大写表示B或者用正常字体表示A，粗体表示B -&gt; 密文\n这道题只要把小写当初A（0）大写当成 B（1）然后二进制转十进制再转换ASCii码即可，但是注意文章中的空格及其他符号在转换时要跳过，否则结果会错误。\n1234567891011121314151617file = open(\"input.txt\")stringList = file.readlines()[0].split()string = ''for i in stringList:    string += inewString = ''for i in string:    if i&gt;='a' and i&lt;='z':        newString +='0'    elif i&gt;='A' and i&lt;='Z':        newString +='1'output = ''for i in range(0,len(newString)-5,5):    num = newString[i:i+5]    num = int(num,2)    output += chr(num+97)print (output)\nTraining: GPG (Crypto, Training)GPG是GNU Privacy Guard的缩写 ，可以生成密钥对来做到个人信息传输加密，和个人信息签名。GPG更详细的介绍见如下链接：\nhttps://www.gnupg.org/\nhttps://wiki.ubuntu.com.cn/GPG/PGP\nkali下默认安装了GPG，可以通过命令：gpg --version来查看linux中是否安装了GPG。\ngpg --gen-key \n生成密钥对。\ngpg --armor --output public-key.txt --export [用户ID] \n把公钥保存到文件public-key.txt 其中 –armor表示输出经 ASCII 封装 –output FILE表示输出的文件，–export导出密钥（公钥）其他命令可以通过gpg --help查看\n在上传公钥后官方会发送一个加密的邮件让你解密后继续操作，这个邮件有点小坑，我用outlook接过来的格式全乱了，得自己调一下才可以解密。调整后格式如下：\n\n然后执行 gpg -d [文件名]就可以解密了。然后访问解密出来的连接，就成功上传公钥了。解题就很简单了，也是解密个密文就可以了。（n+1次打成gdb我可能是有二进制手的心- -）\n","dateCreated":"2018-11-05T20:00:49+08:00","dateModified":"2018-11-05T20:26:58+08:00","datePublished":"2018-11-05T20:00:49+08:00","description":" \nwechall 第二部分writeup 在被血虐后的发X涂墙","headline":"WeChall write up part 2","image":[],"mainEntityOfPage":{"@type":"WebPage","@id":"http://AGGmie.github.io/2018/11/05/WeChall-write-up-part-2/"},"publisher":{"@type":"Organization","name":"AGGmie","sameAs":["https://github.com/AGGmie"],"image":"1.jpg","logo":{"@type":"ImageObject","url":"1.jpg"}},"url":"http://AGGmie.github.io/2018/11/05/WeChall-write-up-part-2/","keywords":"wechall"}</script>
+    <meta name="description" content="wechall 第二部分writeup 在被血虐后的发X涂墙">
+<meta name="keywords" content="wechall">
+<meta property="og:type" content="blog">
+<meta property="og:title" content="WeChall write up part 2">
+<meta property="og:url" content="http://AGGmie.github.io/2018/11/05/WeChall-write-up-part-2/index.html">
+<meta property="og:site_name" content="Grow with AGGmie">
+<meta property="og:description" content="wechall 第二部分writeup 在被血虐后的发X涂墙">
+<meta property="og:locale" content="zh-cn">
+<meta property="og:image" content="https://res.cloudinary.com/dt69vpleo/image/upload/v1541420716/Training_GPG_Crypto_Training.png">
+<meta property="og:updated_time" content="2018-11-05T12:26:58.219Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="WeChall write up part 2">
+<meta name="twitter:description" content="wechall 第二部分writeup 在被血虐后的发X涂墙">
+<meta name="twitter:image" content="https://res.cloudinary.com/dt69vpleo/image/upload/v1541420716/Training_GPG_Crypto_Training.png">
+    
+    
+        
+    
+    
+        <meta property="og:image" content="http://AGGmie.github.io/assets/images/1.jpg"/>
+    
+    
+    
+    
+    <!--STYLES-->
+    <link rel="stylesheet" href="/assets/css/style-du2xmrqdqrl2ollgeiw050kpl6l4nbyz7bumjuurjgsxyopifvukebxc9lqe.min.css">
+    <!--STYLES END-->
+    
+
+    
+</head>
+
+    <body>
+        <div id="blog">
+            <!-- Define author's picture -->
+
+
+    
+        
+            
+        
+    
+
+<header id="header" data-behavior="4">
+    <i id="btn-open-sidebar" class="fa fa-lg fa-bars"></i>
+    <div class="header-title">
+        <a class="header-title-link" href="/ ">Grow with AGGmie</a>
+    </div>
+    
+        
+            <a class="header-right-picture " href="#about">
+        
+        
+            <img class="header-picture" src="/assets/images/1.jpg" alt="作者的图片">
+        
+        </a>
+    
+</header>
+
+            <!-- Define author's picture -->
+
+
+
+        
+    
+
+<nav id="sidebar" data-behavior="4">
+    <div class="sidebar-container">
+        
+            <div class="sidebar-profile">
+                <a href="/#about">
+                    <img class="sidebar-profile-picture" src="/assets/images/1.jpg" alt="作者的图片">
+                </a>
+                <h4 class="sidebar-profile-name">AGGmie</h4>
+                
+                    <h5 class="sidebar-profile-bio"><p>梦想是征服星辰大海！<br>个人邮箱：<a href="mailto:AGGmie@outlook.com">AGGmie@outlook.com</a></p>
+</h5>
+                
+            </div>
+        
+        
+            <ul class="sidebar-buttons">
+            
+                <li class="sidebar-button">
+                    
+                        <a class="sidebar-button-link " href="/ " title="主页">
+                    
+                        <i class="sidebar-button-icon fa fa-home" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">主页</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a class="sidebar-button-link " href="/all-categories" title="分类">
+                    
+                        <i class="sidebar-button-icon fa fa-bookmark" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">分类</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a class="sidebar-button-link " href="/all-tags" title="标签">
+                    
+                        <i class="sidebar-button-icon fa fa-tags" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">标签</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a class="sidebar-button-link " href="/all-archives" title="归档">
+                    
+                        <i class="sidebar-button-icon fa fa-archive" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">归档</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a class="sidebar-button-link " href="#about" title="关于">
+                    
+                        <i class="sidebar-button-icon fa fa-question" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">关于</span>
+                    </a>
+            </li>
+            
+        </ul>
+        
+            <ul class="sidebar-buttons">
+            
+                <li class="sidebar-button">
+                    
+                        <a class="sidebar-button-link " href="https://github.com/AGGmie" target="_blank" rel="noopener" title="GitHub">
+                    
+                        <i class="sidebar-button-icon fab fa-github" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">GitHub</span>
+                    </a>
+            </li>
+            
+        </ul>
+        
+            <ul class="sidebar-buttons">
+            
+                <li class="sidebar-button">
+                    
+                        <a class="sidebar-button-link " href="/atom.xml" title="RSS">
+                    
+                        <i class="sidebar-button-icon fa fa-rss" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">RSS</span>
+                    </a>
+            </li>
+            
+        </ul>
+        
+    </div>
+</nav>
+
+            
+            <div id="main" data-behavior="4"
+                 class="
+                        hasCoverMetaIn
+                        ">
+                
+<article class="post">
+    
+    
+        <div class="post-header main-content-wrap text-left">
+    
+        <h1 class="post-title">
+            WeChall write up part 2
+        </h1>
+    
+    
+        <div class="post-meta">
+    <time datetime="2018-11-05T20:00:49+08:00">
+	
+		    11月 05, 2018
+    	
+    </time>
+    
+        <span>发布在 </span>
+        
+    <a class="category-link" href="/categories/wechall/">wechall</a>
+
+
+    
+</div>
+
+    
+</div>
+
+    
+    <div class="post-content markdown">
+        <div class="main-content-wrap">
+            <h1 id="table-of-contents">目录</h1><ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#PHP-0817-PHP-Exploit"><span class="toc-text">PHP 0817 (PHP, Exploit)</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Training-Crypto-Transposition-I-Crypto-Training"><span class="toc-text">Training: Crypto - Transposition I (Crypto, Training)</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Training-Crypto-Caesar-II-Crypto-Training"><span class="toc-text">Training: Crypto - Caesar II (Crypto, Training)</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Training-MySQL-I-MySQL-Exploit-Training"><span class="toc-text">Training: MySQL I (MySQL, Exploit, Training)</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Training-MySQL-II-MySQL-Exploit-Training"><span class="toc-text">Training: MySQL II (MySQL, Exploit, Training)</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Training-Register-Globals-Exploit-PHP-Training"><span class="toc-text">Training: Register Globals (Exploit, PHP, Training)</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Training-Baconian-Stegano-Encoding-Crypto-Training"><span class="toc-text">Training: Baconian (Stegano, Encoding, Crypto, Training)</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Training-GPG-Crypto-Training"><span class="toc-text">Training: GPG (Crypto, Training)</span></a></li></ol> 
+<p>wechall 第二部分writeup 在被血虐后的发X涂墙</p>
+<a id="more"></a> 
+<h3 id="PHP-0817-PHP-Exploit"><a href="#PHP-0817-PHP-Exploit" class="headerlink" title="PHP 0817 (PHP, Exploit)"></a>PHP 0817 (PHP, Exploit)</h3><p>先来点PHP预备知识，PHP在比较字符串和数字的时候，如果字符串为不可以转换为数字的字符组成的，那么就让其值默认为0，还有一些其他情况贴个学习链接：</p>
+<p><a href="https://blog.csdn.net/auuuuuuuu/article/details/79621635" target="_blank" rel="noopener">https://blog.csdn.net/auuuuuuuu/article/details/79621635</a></p>
+<p>所以在这里我们直接构造payload</p>
+<p>payload: ?which=solution</p>
+<p>就可以包含solution.php了。另外switch语句，如果case里面没有包含break，他是从他找到对应的那条开始一条一条执行的。所以从case 0开始case 1,case 2然后break退出。</p>
+<h3 id="Training-Crypto-Transposition-I-Crypto-Training"><a href="#Training-Crypto-Transposition-I-Crypto-Training" class="headerlink" title="Training: Crypto - Transposition I (Crypto, Training)"></a>Training: Crypto - Transposition I (Crypto, Training)</h3><p>观察一下就发现两个字符为一对调换顺序，直接上脚本。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">cipherText = <span class="string">"oWdnreuf.lY uoc nar ae dht eemssga eaw yebttrew eh nht eelttre sra enic roertco drre . Ihtni koy uowlu dilekt  oes eoyrup sawsro don:wp cdhlhronch.p"</span></span><br><span class="line">plainText = <span class="string">""</span></span><br><span class="line"><span class="keyword">for</span> i <span class="keyword">in</span> range(<span class="number">0</span>,len(cipherText),<span class="number">2</span>):</span><br><span class="line">    plainText += cipherText[i+<span class="number">1</span>] + cipherText[i]</span><br><span class="line"><span class="keyword">print</span> (plainText)</span><br></pre></td></tr></table></figure>
+<h3 id="Training-Crypto-Caesar-II-Crypto-Training"><a href="#Training-Crypto-Caesar-II-Crypto-Training" class="headerlink" title="Training: Crypto - Caesar II (Crypto, Training)"></a>Training: Crypto - Caesar II (Crypto, Training)</h3><p>凯撒加密理论上加密空间为26个英文字母，这里把符号用ASCii表示，扩充了加密空间。通过偏移ASCii值达到加密，我这里直接暴力破解了偏移量，得出结果。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">file = open(<span class="string">'input.txt'</span>)</span><br><span class="line">inputList = []</span><br><span class="line"><span class="keyword">for</span> line <span class="keyword">in</span> file.readlines():</span><br><span class="line">    inputList += line.split()</span><br><span class="line"><span class="keyword">for</span> i <span class="keyword">in</span> range(<span class="number">100</span>):</span><br><span class="line">    outputStr = <span class="string">''</span></span><br><span class="line">    <span class="keyword">for</span> ASCii <span class="keyword">in</span> inputList:</span><br><span class="line">        outputStr += chr(int(ASCii,<span class="number">16</span>)+i)</span><br><span class="line">    print(outputStr)</span><br></pre></td></tr></table></figure>
+<h3 id="Training-MySQL-I-MySQL-Exploit-Training"><a href="#Training-MySQL-I-MySQL-Exploit-Training" class="headerlink" title="Training: MySQL I (MySQL, Exploit, Training)"></a>Training: MySQL I (MySQL, Exploit, Training)</h3><p>十分基础的sql注入，对用户输入的用户名完全没做处理。所以在用户名输入 admin ‘ and 1=1 # 密码随便输入一个就可以注入成功</p>
+<h3 id="Training-MySQL-II-MySQL-Exploit-Training"><a href="#Training-MySQL-II-MySQL-Exploit-Training" class="headerlink" title="Training: MySQL II (MySQL, Exploit, Training)"></a>Training: MySQL II (MySQL, Exploit, Training)</h3><p>这道题的和I的变化就是把账户和密码分开比对了，所以没办法使用简单的万能密码登录。但是可以发现用户名依然没有被处理直接放在查询语句。这里使用到的小技巧是sql union查询注入。先简单介绍一下union查询。</p>
+<p>union查询是将两次查询结果合并为一次的查询方式。举个栗子：</p>
+<p>例如一个查询为<code>SELECT username,password FROM users_1</code> 返回的值为</p>
+<table>
+<thead>
+<tr>
+<th>username</th>
+<th>password</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>admin</td>
+<td>admin</td>
+</tr>
+<tr>
+<td>AGGmie</td>
+<td>23333</td>
+</tr>
+</tbody>
+</table>
+<p>使用union查询<code>SELECT username,password FROM users_1 union SELECT null,null</code></p>
+<table>
+<thead>
+<tr>
+<th>username</th>
+<th>password</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>admin</td>
+<td>admin</td>
+</tr>
+<tr>
+<td>AGGmie</td>
+<td>23333</td>
+</tr>
+<tr>
+<td>null</td>
+<td>null</td>
+</tr>
+</tbody>
+</table>
+<p>可以发现他把两次查询的结果一起返回在一个集合中了。</p>
+<p>union查询有两个要求：</p>
+<p>1.所有查询列数必须相同，e.g.如果刚刚我union select null,null,null就会报错。</p>
+<p>2.数据类型必须兼容。因此爆字段数时经常用null来避免不兼容（也有习惯用1,2,3的不过也有可能不兼容）</p>
+<p>回到这道题：</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">$password = md5($password);</span><br><span class="line">       </span><br><span class="line">       $query = <span class="string">"SELECT * FROM users WHERE username='$username'"</span>;</span><br><span class="line">       </span><br><span class="line">       <span class="keyword">if</span> (<span class="keyword">false</span> === ($result = $db-&gt;queryFirst($query))) &#123;</span><br><span class="line">               <span class="keyword">echo</span> GWF_HTML::error(<span class="string">'Auth2'</span>, $chall-&gt;lang(<span class="string">'err_unknown'</span>), <span class="keyword">false</span>);</span><br><span class="line">               <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">       &#125;</span><br><span class="line">       </span><br><span class="line">       </span><br><span class="line">       <span class="comment">#############################</span></span><br><span class="line">       <span class="comment">### This is the new check ###</span></span><br><span class="line">       <span class="keyword">if</span> ($result[<span class="string">'password'</span>] !== $password) &#123;</span><br><span class="line">               <span class="keyword">echo</span> GWF_HTML::error(<span class="string">'Auth2'</span>, $chall-&gt;lang(<span class="string">'err_password'</span>), <span class="keyword">false</span>);</span><br><span class="line">               <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">       &#125; <span class="comment">#  End of the new code  ###</span></span><br><span class="line">       <span class="comment">#############################</span></span><br><span class="line">       </span><br><span class="line">       </span><br><span class="line">       <span class="keyword">echo</span> GWF_HTML::message(<span class="string">'Auth2'</span>, $chall-&gt;lang(<span class="string">'msg_welcome_back'</span>, <span class="keyword">array</span>(htmlspecialchars($result[<span class="string">'username'</span>]))), <span class="keyword">false</span>);</span><br><span class="line">       </span><br><span class="line">       <span class="keyword">if</span> (strtolower($result[<span class="string">'username'</span>]) === <span class="string">'admin'</span>) &#123;</span><br><span class="line">               $chall-&gt;onChallengeSolved(GWF_Session::getUserID());</span><br><span class="line">       &#125;</span><br></pre></td></tr></table></figure>
+<p>这段代码对于登录的判断如下：</p>
+<p>先将用户提交的password MD5加密，然后执行查询语句，通过用户的username查询数据库中的password，如果查询出的password与用户输入的password不相等（都是MD5加密的）那么登录失败，如果相等，且username为admin，就成功登录admin账号。</p>
+<p>所以我们可以对这句查询语句动动手脚：</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$query = <span class="string">"SELECT * FROM users WHERE username='$username'"</span>;</span><br></pre></td></tr></table></figure>
+<p>如果我们知道字段长，再把我们构造的username和password插到查询结果就大功告成了。 这是union查询登场!通过在username构造payload:<code>-1&#39; union select null,null,null#</code> 没有报错可以得到字段数为3,。</p>
+<p>然后再把我们自己构造的admin登录名和密码插入到查询结果<code>-1&#39; union select null,&#39;admin&#39;,md5(&#39;admin&#39;)#</code></p>
+<p>password中输入admin,可以发现登陆成功，这里要注意要payload里密码要md5加密。</p>
+<h3 id="Training-Register-Globals-Exploit-PHP-Training"><a href="#Training-Register-Globals-Exploit-PHP-Training" class="headerlink" title="Training: Register Globals (Exploit, PHP, Training)"></a>Training: Register Globals (Exploit, PHP, Training)</h3><p>首先了解一下register_globals参数是做什么的，这个参数如果状态时打开的，所以传递进来的值都是全局变量。</p>
+<p>举个栗子：</p>
+<p>正常我们get或post提交什么信息应该都是通过<code>$_GET[&#39;xxx&#39;]</code> 或者 <code>$_POST[&#39;xxx&#39;]</code>来接受值的。如果register_globals开了，那么我们就可以直接通过<code>$xxx</code>来接受值。这就十分的危险了，也就是说用户可以通过get或者post直接改变变量的值。在这道题，我们阅读源代码可以看到下面这一段：</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (<span class="keyword">isset</span>($login))</span><br><span class="line">&#123;</span><br><span class="line">        <span class="keyword">echo</span> GWF_HTML::message(<span class="string">'Register Globals'</span>, $chall-&gt;lang(<span class="string">'msg_welcome_back'</span>, <span class="keyword">array</span>(htmlspecialchars($login[<span class="number">0</span>]), htmlspecialchars($login[<span class="number">1</span>]))));</span><br><span class="line">        <span class="keyword">if</span> (strtolower($login[<span class="number">0</span>]) === <span class="string">'admin'</span>) &#123;                $chall-&gt;onChallengeSolved(GWF_Session::getUserID());</span><br><span class="line">        &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这一段中重要的就是如果<code>login[0]===‘admin’</code>,那么我们就可以以admin用户的身份登录了。又提到这里的register_globals是开启的，那就可以直接用GET请求把login[0]赋值为‘admin’就可以直接登录了</p>
+<p>payload: ?login[0]=admin</p>
+<h3 id="Training-Baconian-Stegano-Encoding-Crypto-Training"><a href="#Training-Baconian-Stegano-Encoding-Crypto-Training" class="headerlink" title="Training: Baconian (Stegano, Encoding, Crypto, Training)"></a>Training: Baconian (Stegano, Encoding, Crypto, Training)</h3><p>这道题是一个培根加密，实际上是一种二进制加密，具体加密方法如下：</p>
+<p>​    明文 -&gt; 各个字母在字母表中位置 -&gt; 将位置转换为五位二进制 -&gt; 将二进制0改为A，1改为B -&gt; 用小写表示A大写表示B或者用正常字体表示A，粗体表示B -&gt; 密文</p>
+<p>这道题只要把小写当初A（0）大写当成 B（1）然后二进制转十进制再转换ASCii码即可，但是注意文章中的空格及其他符号在转换时要跳过，否则结果会错误。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">file = open(<span class="string">"input.txt"</span>)</span><br><span class="line">stringList = file.readlines()[<span class="number">0</span>].split()</span><br><span class="line">string = <span class="string">''</span></span><br><span class="line"><span class="keyword">for</span> i <span class="keyword">in</span> stringList:</span><br><span class="line">    string += i</span><br><span class="line">newString = <span class="string">''</span></span><br><span class="line"><span class="keyword">for</span> i <span class="keyword">in</span> string:</span><br><span class="line">    <span class="keyword">if</span> i&gt;=<span class="string">'a'</span> <span class="keyword">and</span> i&lt;=<span class="string">'z'</span>:</span><br><span class="line">        newString +=<span class="string">'0'</span></span><br><span class="line">    <span class="keyword">elif</span> i&gt;=<span class="string">'A'</span> <span class="keyword">and</span> i&lt;=<span class="string">'Z'</span>:</span><br><span class="line">        newString +=<span class="string">'1'</span></span><br><span class="line">output = <span class="string">''</span></span><br><span class="line"><span class="keyword">for</span> i <span class="keyword">in</span> range(<span class="number">0</span>,len(newString)<span class="number">-5</span>,<span class="number">5</span>):</span><br><span class="line">    num = newString[i:i+<span class="number">5</span>]</span><br><span class="line">    num = int(num,<span class="number">2</span>)</span><br><span class="line">    output += chr(num+<span class="number">97</span>)</span><br><span class="line"><span class="keyword">print</span> (output)</span><br></pre></td></tr></table></figure>
+<h3 id="Training-GPG-Crypto-Training"><a href="#Training-GPG-Crypto-Training" class="headerlink" title="Training: GPG (Crypto, Training)"></a>Training: GPG (Crypto, Training)</h3><p>GPG是GNU Privacy Guard的缩写 ，可以生成密钥对来做到个人信息传输加密，和个人信息签名。GPG更详细的介绍见如下链接：</p>
+<p><a href="https://www.gnupg.org/" target="_blank" rel="noopener">https://www.gnupg.org/</a></p>
+<p><a href="https://wiki.ubuntu.com.cn/GPG/PGP" target="_blank" rel="noopener">https://wiki.ubuntu.com.cn/GPG/PGP</a></p>
+<p>kali下默认安装了GPG，可以通过命令：<code>gpg --version</code>来查看linux中是否安装了GPG。</p>
+<p><code>gpg --gen-key</code> </p>
+<p>生成密钥对。</p>
+<p><code>gpg --armor --output public-key.txt --export [用户ID]</code> </p>
+<p>把公钥保存到文件public-key.txt 其中 –armor表示输出经 ASCII 封装 –output FILE表示输出的文件，–export导出密钥（公钥）其他命令可以通过<code>gpg --help</code>查看</p>
+<p>在上传公钥后官方会发送一个加密的邮件让你解密后继续操作，这个邮件有点小坑，我用outlook接过来的格式全乱了，得自己调一下才可以解密。调整后格式如下：</p>
+<p><img src="https://res.cloudinary.com/dt69vpleo/image/upload/v1541420716/Training_GPG_Crypto_Training.png" alt=""></p>
+<p>然后执行 gpg -d [文件名]就可以解密了。然后访问解密出来的连接，就成功上传公钥了。解题就很简单了，也是解密个密文就可以了。（n+1次打成gdb我可能是有二进制手的心- -）</p>
+
+            
+
+        </div>
+    </div>
+    <div id="post-footer" class="post-footer main-content-wrap">
+        
+            <div class="post-footer-tags">
+                <span class="text-color-light text-small">标签</span><br>
+                
+    <a class="tag tag--primary tag--small t-link" href="/tags/wechall/">wechall</a>
+
+            </div>
+        
+        
+            <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--disabled">
+                
+                    <i class="fa fa-angle-left" aria-hidden="true"></i>
+                    <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                </a>
+            </li>
+            <li class="post-action">
+                
+                    
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2018/10/31/WeChall-write-up-part-1/" data-tooltip="WeChall write up part 1" aria-label="下一篇: WeChall write up part 1">
+                
+                    <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                    <i class="fa fa-angle-right" aria-hidden="true"></i>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a class="post-action-btn btn btn--default btn-open-shareoptions" href="#btn-open-shareoptions" aria-label="Diesen Beitrag teilen">
+                <i class="fa fa-share-alt" aria-hidden="true"></i>
+            </a>
+        </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a class="post-action-btn btn btn--default" target="new" href="https://www.facebook.com/sharer/sharer.php?u=http://AGGmie.github.io/2018/11/05/WeChall-write-up-part-2/" title="分享到 Facebook">
+                    <i class="fab fa-facebook" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a class="post-action-btn btn btn--default" target="new" href="https://twitter.com/intent/tweet?text=http://AGGmie.github.io/2018/11/05/WeChall-write-up-part-2/" title="分享到 Twitter">
+                    <i class="fab fa-twitter" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a class="post-action-btn btn btn--default" target="new" href="https://plus.google.com/share?url=http://AGGmie.github.io/2018/11/05/WeChall-write-up-part-2/" title="分享到 Google+">
+                    <i class="fab fa-google-plus" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a class="post-action-btn btn btn--default" target="new" href="http://service.weibo.com/share/share.php?&amp;title=http://AGGmie.github.io/2018/11/05/WeChall-write-up-part-2/" title="分享到 Weibo">
+                    <i class="fab fa-weibo" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a class="post-action-btn btn btn--default" target="new" href="http://connect.qq.com/widget/shareqq/index.html?url=http://AGGmie.github.io/2018/11/05/WeChall-write-up-part-2/&amp;title=WeChall write up part 2" title="分享到 QQ">
+                    <i class="fab fa-qq" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+        
+            
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#table-of-contents" aria-label="目录">
+            
+                <i class="fa fa-list" aria-hidden="true"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+        
+        
+            
+        
+    </div>
+</article>
+
+
+
+                <footer id="footer" class="main-content-wrap">
+    <span class="copyrights">
+        Copyrights &copy; 2018 AGGmie. All Rights Reserved.
+    </span>
+</footer>
+
+            </div>
+            
+                <div id="bottom-bar" class="post-bottom-bar" data-behavior="4">
+                    <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--disabled">
+                
+                    <i class="fa fa-angle-left" aria-hidden="true"></i>
+                    <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                </a>
+            </li>
+            <li class="post-action">
+                
+                    
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2018/10/31/WeChall-write-up-part-1/" data-tooltip="WeChall write up part 1" aria-label="下一篇: WeChall write up part 1">
+                
+                    <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                    <i class="fa fa-angle-right" aria-hidden="true"></i>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a class="post-action-btn btn btn--default btn-open-shareoptions" href="#btn-open-shareoptions" aria-label="Diesen Beitrag teilen">
+                <i class="fa fa-share-alt" aria-hidden="true"></i>
+            </a>
+        </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a class="post-action-btn btn btn--default" target="new" href="https://www.facebook.com/sharer/sharer.php?u=http://AGGmie.github.io/2018/11/05/WeChall-write-up-part-2/" title="分享到 Facebook">
+                    <i class="fab fa-facebook" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a class="post-action-btn btn btn--default" target="new" href="https://twitter.com/intent/tweet?text=http://AGGmie.github.io/2018/11/05/WeChall-write-up-part-2/" title="分享到 Twitter">
+                    <i class="fab fa-twitter" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a class="post-action-btn btn btn--default" target="new" href="https://plus.google.com/share?url=http://AGGmie.github.io/2018/11/05/WeChall-write-up-part-2/" title="分享到 Google+">
+                    <i class="fab fa-google-plus" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a class="post-action-btn btn btn--default" target="new" href="http://service.weibo.com/share/share.php?&amp;title=http://AGGmie.github.io/2018/11/05/WeChall-write-up-part-2/" title="分享到 Weibo">
+                    <i class="fab fa-weibo" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a class="post-action-btn btn btn--default" target="new" href="http://connect.qq.com/widget/shareqq/index.html?url=http://AGGmie.github.io/2018/11/05/WeChall-write-up-part-2/&amp;title=WeChall write up part 2" title="分享到 QQ">
+                    <i class="fab fa-qq" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+        
+            
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#table-of-contents" aria-label="目录">
+            
+                <i class="fa fa-list" aria-hidden="true"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+                </div>
+                <div id="share-options-bar" class="share-options-bar" data-behavior="4">
+    <i id="btn-close-shareoptions" class="fa fa-times"></i>
+    <ul class="share-options">
+        
+            
+            
+            <li class="share-option">
+                <a class="share-option-btn" target="new" href="https://www.facebook.com/sharer/sharer.php?u=http://AGGmie.github.io/2018/11/05/WeChall-write-up-part-2/">
+                    <i class="fab fa-facebook" aria-hidden="true"></i><span>分享到 Facebook</span>
+                </a>
+            </li>
+        
+            
+            
+            <li class="share-option">
+                <a class="share-option-btn" target="new" href="https://twitter.com/intent/tweet?text=http://AGGmie.github.io/2018/11/05/WeChall-write-up-part-2/">
+                    <i class="fab fa-twitter" aria-hidden="true"></i><span>分享到 Twitter</span>
+                </a>
+            </li>
+        
+            
+            
+            <li class="share-option">
+                <a class="share-option-btn" target="new" href="https://plus.google.com/share?url=http://AGGmie.github.io/2018/11/05/WeChall-write-up-part-2/">
+                    <i class="fab fa-google-plus" aria-hidden="true"></i><span>分享到 Google+</span>
+                </a>
+            </li>
+        
+            
+            
+            <li class="share-option">
+                <a class="share-option-btn" target="new" href="http://service.weibo.com/share/share.php?&amp;title=http://AGGmie.github.io/2018/11/05/WeChall-write-up-part-2/">
+                    <i class="fab fa-weibo" aria-hidden="true"></i><span>分享到 Weibo</span>
+                </a>
+            </li>
+        
+            
+            
+            <li class="share-option">
+                <a class="share-option-btn" target="new" href="http://connect.qq.com/widget/shareqq/index.html?url=http://AGGmie.github.io/2018/11/05/WeChall-write-up-part-2/&amp;title=WeChall write up part 2">
+                    <i class="fab fa-qq" aria-hidden="true"></i><span>分享到 QQ</span>
+                </a>
+            </li>
+        
+    </ul>
+</div>
+
+            
+        </div>
+        
+
+
+    
+        
+    
+
+<div id="about">
+    <div id="about-card">
+        <div id="about-btn-close">
+            <i class="fa fa-times"></i>
+        </div>
+        
+            <img id="about-card-picture" src="/assets/images/1.jpg" alt="作者的图片">
+        
+            <h4 id="about-card-name">AGGmie</h4>
+        
+            <div id="about-card-bio"><p>梦想是征服星辰大海！<br>个人邮箱：<a href="mailto:AGGmie@outlook.com">AGGmie@outlook.com</a></p>
+</div>
+        
+        
+            <div id="about-card-job">
+                <i class="fa fa-briefcase"></i>
+                <br>
+                <p>student</p>
+
+            </div>
+        
+        
+            <div id="about-card-location">
+                <i class="fa fa-map-marker-alt"></i>
+                <br>
+                China
+            </div>
+        
+    </div>
+</div>
+
+        
+        
+<div id="cover" style="background-image:url('/assets/images/cover.jpg');"></div>
+        <!--SCRIPTS-->
+<script src="/assets/js/script-vufjrm3fmbuttogo1hxuu0w9w0sesk5iyysjuguc2hdhufot9szxg8twijry.min.js"></script>
+<!--SCRIPTS END-->
+
+    
+
+
+
+    </body>
+</html>
