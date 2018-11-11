@@ -1,0 +1,678 @@
+
+<!DOCTYPE html>
+<html lang="zh-cn">
+    
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="generator" content="Grow with AGGmie">
+    <title>Wechall write up part 3 - Grow with AGGmie</title>
+    <meta name="author" content="AGGmie">
+    
+    
+    
+        <link rel="alternate" type="application/atom+xml" title="RSS" href="/atom.xml">
+    
+    <script type="application/ld+json">{"@context":"http://schema.org","@type":"BlogPosting","author":{"@type":"Person","name":"AGGmie","sameAs":["https://github.com/AGGmie"],"image":"1.jpg"},"articleBody":" \nwechall 第三部分writeup 虽然越来越难但是还是坚持被虐的AGGmie\n \nTraining: Crypto - Digraphs (Crypto, Training)拿图做的加密，概念很简单就是画了个26*26的表然后用a-z分别表示行列，例如aa表示就是第a行，第a列那个字符，然后去表里找就行了，但是这个表里面的字符我们不知道是怎么排的。这时候就开启我的魔幻解题之旅了。\n0x00:首先这是英文句子（什么屁话？）所以最后的两个字母我猜它肯定是加密的‘.’，然后成功找到了整篇文章所部分句子结束符也就是把部分句子和句子分开了。\n0x01:然后再次强调这是英文句子，所以我有个大胆的想法，每个结束符后跟着的句首都是大写字母，而除了句首以外的内容绝大部分都是小写字母，也就是整片文章小写字母&gt;&gt;大写字母。那么我们先破解小写字母，大写字母很容易就能猜出来\n0x03:第一句没有空格，证明是一个一长串的单词，我个英语废仔细搜寻我脑袋中适合放在这的这么老长的单词（没错这里瞎猜的。。）我想他应该是要恭喜我喜当爹，因此第一个单词应该是Congratulations，直接改下文章，爆出来第二个三个字母单词最后一位是U，再次猜是you得到结果如下：\n1ibONGRATULATIONS. mgOU DoxmdRfhzoToxD TmxIS mhoxSSAGox SUmdmdoxSSjrULLfh. rgAS NOT TOO DIjrjrImdULT oxITmxoxRks usAS ITju rgoxLLks GOOD wlOfg. twNToxR TmxIS oeoxfhusORD AS SOLUTIONwk OfgzoRALoxjrzoNmxjr.\n为了分辨清楚明文密文，这里把明文小写字母都大写了，明文大写字母没有改还按密文显示。\n0x04：可以看到爆出来的部分明文还是有点靠谱的，找找有没有认识的单词，可以隐约发现个successful，开始改：\n1ibONGRATULATIONS. mgOU DECRfhzoTED TmxIS MESSAGE SUCCESSFULLfh. rgAS NOT TOO DIFFICULT EITmxERks usAS ITju rgELLks GOOD wlOfg. twNTER TmxIS oeEfhusORD AS SOLUTIONwk OfgzoRALEFzoNmxF.\n0x05:  接下来很好看了，this message job decryption 这几个单词都能看出来大概了，再改一波：\n1ibONGRATULATIONS. mgOU DECRYPTED THIS MESSAGE SUCCESSFULLY. rgAS NOT TOO DIFFICULT EITHERks usAS ITju rgELLks GOOD JOB. twNTER THIS oeEYusORD AS SOLUTIONwk OBPRALEFPNHF.\n我们要的flag已经出来了，没有改过来的就是剩下的大写字母和标点符号,和懒得再改的小写字母（逃~）了，我宣布魔幻解题之旅结束\\OVO/\nTraining: Math Pyramid (Math, Training)这个emmm，反正不能用sqrt()它这一口气占了6个位置就剩仨位置也不够分啊，然后我们常说的根号几几几实际上是1/2次方也是0.5次方，椎体体积公式：\nV=1/3Sh\nV为体积，S为底面积，h为高（？？蜜汁开始讲初中数学）然后一顿计算之后导出来公式：\n a^3/18^0.5 \n多了一位，小数因为整数位为0直接可以省略最后：\na^3/18^.5\n无力吐槽.jpg\nhi (Math)整个流程在题干已经举例了，也就是我们要求第n秒的hi总数就是求2,3,4…n+1这个等差数列的和。直接上公式：\n(2+time+1)*time)//2\n但是有一个小点要注意，在python中‘/’表示的是浮点数除法，而’//‘表示的是整数除法，如果在这里用‘/’会被直接转换为科学计数法，导致精度出现问题，所以要用’//‘避免这个问题\n/ 结果：\n1.5472209893556454e+26\n//结果：\n154722098935564539692256152\n可以明显看到精度不同。\nNo Escape (Exploit, PHP, MySQL)源码中更新选票的操作如下：\n123$who = Common::getGet('vote_for') ......$query = \"UPDATE noescvotes SET `$who`=`$who`+1 WHERE id=1\";\n可以看到这里的who也是直接把变量放在这里没有做处理,直接构造payload:bill`=111 –+注意那个不是单引号。\nStegano Attachment (Stegano, Image, Training)binwalk跑一下，发现里面藏了个.zip文件，直接改后缀解压缩得到结果\nLimited Access (Exploit, HTTP).htaccess文件实际上是Apache服务器中的一个配置文件，可以实现相关目录下的网页配置。例如：文件夹密码保护、用户自动重定向、自定义错误页面、改变你的文件扩展名、封禁特定IP地址的用户、只允许特定IP地址的用户、禁止目录列表，以及使用其他文件作为index文件等一些功能。 \n这道题因为.htaccess文件的设置导致我们需要登录才能访问protected文件，但是我们看到.htaccess文件内容如下：\n1234567AuthUserFile .htpasswdAuthGroupFile /dev/nullAuthName &quot;Authorization Required for the Limited Access Challenge&quot;AuthType Basic&lt;Limit GET&gt;require valid-user&lt;/Limit&gt;\n注意最后，只有在我们以GET请求访问页面的时候，才需要登录，因此我们只要使用POST请求来访问页面就可以绕过这个限制了。\nTraining: Crypto - Substitution I (Crypto, Training)简单替换密码：简单替换密码是凯撒密码的变种，相对于凯撒密码每一位偏移量相同，简单替换密码则是采用不同的偏移量来进行加密，增加了破解难度。不过在英文中，每一位字母的出现频率是不同的，有人专门统计过字母出现的频率如下：\n\n\n\na\n8.167%\n\n\n\n\nb\n1.492%\n\n\nc\n2.782%\n\n\nd\n4.253%\n\n\ne\n12.702%\n\n\nf\n2.228%\n\n\ng\n2.015%\n\n\nh\n6.094%\n\n\ni\n6.966%\n\n\nj\n0.153%\n\n\nk\n0.772%\n\n\nl\n4.025%\n\n\nm\n2.406%\n\n\nn\n6.749%\n\n\no\n7.507%\n\n\np\n1.929%\n\n\nq\n0.095%\n\n\nr\n5.987%\n\n\ns\n6.327%\n\n\nt\n9.056%\n\n\nu\n2.758%\n\n\nv\n0.978%\n\n\nw\n2.360%\n\n\nx\n0.150%\n\n\ny\n1.974%\n\n\nz\n0.074%\n\n\n\n因此可以通过统计密文中字母的频率，对照字母频率表进行替换，然后在于字典比对进行破解，直接上解密网站：\nhttps://quipqiup.com/\nZebra (Training, Encoding, Stegano)图片一打开就能看到🦓身上有个条形码，PS选手上线直接截取下来找个网站识别一下就可以了。\nTraining: Crypto - Substitution II (Crypto, Training)这题解题思路后面和Training: Crypto - Digraphs (Crypto, Training)很像，前面稍微有些不同。我们在I里面已经知道简单替换密码的原理以及运用字母频率破解的方法，这里把加密空间扩大，和之前的一个扩大凯撒加密加密空间的手法是一样的。最终我们还是要以统计字符频率为切入点。解密前我们先整理一下线索：\n1.这个明文是英文的，而且是英文句子。\n2.英文句子的特点，都是英文字母且每个单词之间以空格区分。\nok，我们上来先统计一下每个密文字符的频率，以我拿到的密文为主，我统计出来的概率如下：\n1[(&apos;5F&apos;, 0.1724137931034483), (&apos;8C&apos;, 0.08189655172413793), (&apos;8B&apos;, 0.07327586206896551), (&apos;9A&apos;, 0.07327586206896551), (&apos;21&apos;, 0.06465517241379311), (&apos;A7&apos;, 0.05172413793103448), (&apos;54&apos;, 0.04741379310344827), (&apos;5A&apos;, 0.04741379310344827), (&apos;07&apos;, 0.04741379310344827), (&apos;30&apos;, 0.04310344827586207), (&apos;6E&apos;, 0.034482758620689655), (&apos;C8&apos;, 0.02586206896551724), (&apos;5B&apos;, 0.02586206896551724), (&apos;3A&apos;, 0.02586206896551724), (&apos;0D&apos;, 0.02586206896551724), (&apos;1D&apos;, 0.02586206896551724), (&apos;AC&apos;, 0.021551724137931036), (&apos;D3&apos;, 0.017241379310344827), (&apos;F3&apos;, 0.017241379310344827), (&apos;E5&apos;, 0.01293103448275862), (&apos;7A&apos;, 0.01293103448275862), (&apos;32&apos;, 0.008620689655172414), (&apos;26&apos;, 0.008620689655172414), (&apos;FC&apos;, 0.008620689655172414), (&apos;6D&apos;, 0.004310344827586207), (&apos;D6&apos;, 0.004310344827586207), (&apos;9F&apos;, 0.004310344827586207), (&apos;34&apos;, 0.004310344827586207), (&apos;7F&apos;, 0.004310344827586207), (&apos;04&apos;, 0.004310344827586207)]\n稍微有点绝望的是，有很多字符概率是一样的，而且密文有点短，很可能有很大偏差。一个一个试会很麻烦。\n但是我们知道的是单词与单词之间以空格分隔，那么空格出现的概率应该很高，所以大胆猜测一下5F就是空格。\n另外几个高概率字符还是可以对比概率表的字符试一下，最后几个高概率对应如下：\n8C：o\n8B：e\n9A：t\n21：i\n空格分开之后配合这些试出来的高概率字符可以很好的猜测出，没错，第一个单词又双叒叕是congratulations，嗯然后开始Training: Crypto - Digraphs (Crypto, Training)的套路就好了，所以这题关键点就是空格+高概率字符+瞎猜。\n答完这题Score变成520 Global Rank变成6666了哈哈哈哈哈哈哈，我不管我要截图纪念一下！\n\n","dateCreated":"2018-11-11T16:53:38+08:00","dateModified":"2018-11-11T16:55:36+08:00","datePublished":"2018-11-11T16:53:38+08:00","description":" \nwechall 第三部分writeup 虽然越来越难但是还是坚持被虐的AGGmie","headline":"Wechall write up part 3","image":[],"mainEntityOfPage":{"@type":"WebPage","@id":"http://AGGmie.github.io/2018/11/11/Wechall-write-up-part-3/"},"publisher":{"@type":"Organization","name":"AGGmie","sameAs":["https://github.com/AGGmie"],"image":"1.jpg","logo":{"@type":"ImageObject","url":"1.jpg"}},"url":"http://AGGmie.github.io/2018/11/11/Wechall-write-up-part-3/","keywords":"wechall"}</script>
+    <meta name="description" content="wechall 第三部分writeup 虽然越来越难但是还是坚持被虐的AGGmie">
+<meta name="keywords" content="wechall">
+<meta property="og:type" content="blog">
+<meta property="og:title" content="Wechall write up part 3">
+<meta property="og:url" content="http://AGGmie.github.io/2018/11/11/Wechall-write-up-part-3/index.html">
+<meta property="og:site_name" content="Grow with AGGmie">
+<meta property="og:description" content="wechall 第三部分writeup 虽然越来越难但是还是坚持被虐的AGGmie">
+<meta property="og:locale" content="zh-cn">
+<meta property="og:image" content="https://res.cloudinary.com/dt69vpleo/image/upload/v1541926308/5206666.png">
+<meta property="og:updated_time" content="2018-11-11T08:55:36.763Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Wechall write up part 3">
+<meta name="twitter:description" content="wechall 第三部分writeup 虽然越来越难但是还是坚持被虐的AGGmie">
+<meta name="twitter:image" content="https://res.cloudinary.com/dt69vpleo/image/upload/v1541926308/5206666.png">
+    
+    
+        
+    
+    
+        <meta property="og:image" content="http://AGGmie.github.io/assets/images/1.jpg"/>
+    
+    
+    
+    
+    <!--STYLES-->
+    <link rel="stylesheet" href="/assets/css/style-du2xmrqdqrl2ollgeiw050kpl6l4nbyz7bumjuurjgsxyopifvukebxc9lqe.min.css">
+    <!--STYLES END-->
+    
+
+    
+</head>
+
+    <body>
+        <div id="blog">
+            <!-- Define author's picture -->
+
+
+    
+        
+            
+        
+    
+
+<header id="header" data-behavior="4">
+    <i id="btn-open-sidebar" class="fa fa-lg fa-bars"></i>
+    <div class="header-title">
+        <a class="header-title-link" href="/ ">Grow with AGGmie</a>
+    </div>
+    
+        
+            <a class="header-right-picture " href="#about">
+        
+        
+            <img class="header-picture" src="/assets/images/1.jpg" alt="作者的图片">
+        
+        </a>
+    
+</header>
+
+            <!-- Define author's picture -->
+
+
+
+        
+    
+
+<nav id="sidebar" data-behavior="4">
+    <div class="sidebar-container">
+        
+            <div class="sidebar-profile">
+                <a href="/#about">
+                    <img class="sidebar-profile-picture" src="/assets/images/1.jpg" alt="作者的图片">
+                </a>
+                <h4 class="sidebar-profile-name">AGGmie</h4>
+                
+                    <h5 class="sidebar-profile-bio"><p>梦想是征服星辰大海！<br>个人邮箱：<a href="mailto:AGGmie@outlook.com">AGGmie@outlook.com</a></p>
+</h5>
+                
+            </div>
+        
+        
+            <ul class="sidebar-buttons">
+            
+                <li class="sidebar-button">
+                    
+                        <a class="sidebar-button-link " href="/ " title="主页">
+                    
+                        <i class="sidebar-button-icon fa fa-home" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">主页</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a class="sidebar-button-link " href="/all-categories" title="分类">
+                    
+                        <i class="sidebar-button-icon fa fa-bookmark" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">分类</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a class="sidebar-button-link " href="/all-tags" title="标签">
+                    
+                        <i class="sidebar-button-icon fa fa-tags" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">标签</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a class="sidebar-button-link " href="/all-archives" title="归档">
+                    
+                        <i class="sidebar-button-icon fa fa-archive" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">归档</span>
+                    </a>
+            </li>
+            
+                <li class="sidebar-button">
+                    
+                        <a class="sidebar-button-link " href="#about" title="关于">
+                    
+                        <i class="sidebar-button-icon fa fa-question" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">关于</span>
+                    </a>
+            </li>
+            
+        </ul>
+        
+            <ul class="sidebar-buttons">
+            
+                <li class="sidebar-button">
+                    
+                        <a class="sidebar-button-link " href="https://github.com/AGGmie" target="_blank" rel="noopener" title="GitHub">
+                    
+                        <i class="sidebar-button-icon fab fa-github" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">GitHub</span>
+                    </a>
+            </li>
+            
+        </ul>
+        
+            <ul class="sidebar-buttons">
+            
+                <li class="sidebar-button">
+                    
+                        <a class="sidebar-button-link " href="/atom.xml" title="RSS">
+                    
+                        <i class="sidebar-button-icon fa fa-rss" aria-hidden="true"></i>
+                        <span class="sidebar-button-desc">RSS</span>
+                    </a>
+            </li>
+            
+        </ul>
+        
+    </div>
+</nav>
+
+            
+            <div id="main" data-behavior="4"
+                 class="
+                        hasCoverMetaIn
+                        ">
+                
+<article class="post">
+    
+    
+        <div class="post-header main-content-wrap text-left">
+    
+        <h1 class="post-title">
+            Wechall write up part 3
+        </h1>
+    
+    
+        <div class="post-meta">
+    <time datetime="2018-11-11T16:53:38+08:00">
+	
+		    11月 11, 2018
+    	
+    </time>
+    
+        <span>发布在 </span>
+        
+    <a class="category-link" href="/categories/wechall/">wechall</a>
+
+
+    
+</div>
+
+    
+</div>
+
+    
+    <div class="post-content markdown">
+        <div class="main-content-wrap">
+            <h1 id="table-of-contents">目录</h1><ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#Training-Crypto-Digraphs-Crypto-Training"><span class="toc-text">Training: Crypto - Digraphs (Crypto, Training)</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Training-Math-Pyramid-Math-Training"><span class="toc-text">Training: Math Pyramid (Math, Training)</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#hi-Math"><span class="toc-text">hi (Math)</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#No-Escape-Exploit-PHP-MySQL"><span class="toc-text">No Escape (Exploit, PHP, MySQL)</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Stegano-Attachment-Stegano-Image-Training"><span class="toc-text">Stegano Attachment (Stegano, Image, Training)</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Limited-Access-Exploit-HTTP"><span class="toc-text">Limited Access (Exploit, HTTP)</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Training-Crypto-Substitution-I-Crypto-Training"><span class="toc-text">Training: Crypto - Substitution I (Crypto, Training)</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Zebra-Training-Encoding-Stegano"><span class="toc-text">Zebra (Training, Encoding, Stegano)</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Training-Crypto-Substitution-II-Crypto-Training"><span class="toc-text">Training: Crypto - Substitution II (Crypto, Training)</span></a></li></ol> 
+<p>wechall 第三部分writeup 虽然越来越难但是还是坚持被虐的AGGmie</p>
+<a id="more"></a> 
+<h3 id="Training-Crypto-Digraphs-Crypto-Training"><a href="#Training-Crypto-Digraphs-Crypto-Training" class="headerlink" title="Training: Crypto - Digraphs (Crypto, Training)"></a>Training: Crypto - Digraphs (Crypto, Training)</h3><p>拿图做的加密，概念很简单就是画了个26*26的表然后用a-z分别表示行列，例如aa表示就是第a行，第a列那个字符，然后去表里找就行了，但是这个表里面的字符我们不知道是怎么排的。这时候就开启我的魔幻解题之旅了。</p>
+<p><strong>0x00</strong>:首先这是英文句子（什么屁话？）所以最后的两个字母我猜它肯定是加密的‘.’，然后成功找到了整篇文章所部分句子结束符也就是把部分句子和句子分开了。</p>
+<p><strong>0x01</strong>:然后再次强调这是英文句子，所以我有个大胆的想法，每个结束符后跟着的句首都是大写字母，而除了句首以外的内容绝大部分都是小写字母，也就是整片文章小写字母&gt;&gt;大写字母。那么我们先破解小写字母，大写字母很容易就能猜出来</p>
+<p><strong>0x03</strong>:第一句没有空格，证明是一个一长串的单词，我个英语废仔细搜寻我脑袋中适合放在这的这么老长的单词（没错这里瞎猜的。。）我想他应该是要恭喜我<del>喜当爹</del>，因此第一个单词应该是Congratulations，直接改下文章，爆出来第二个三个字母单词最后一位是U，再次猜是you得到结果如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ibONGRATULATIONS. mgOU DoxmdRfhzoToxD TmxIS mhoxSSAGox SUmdmdoxSSjrULLfh. rgAS NOT TOO DIjrjrImdULT oxITmxoxRks usAS ITju rgoxLLks GOOD wlOfg. twNToxR TmxIS oeoxfhusORD AS SOLUTIONwk OfgzoRALoxjrzoNmxjr.</span><br></pre></td></tr></table></figure>
+<p>为了分辨清楚明文密文，这里把明文小写字母都大写了，明文大写字母没有改还按密文显示。</p>
+<p><strong>0x04</strong>：可以看到爆出来的部分明文还是有点靠谱的，找找有没有认识的单词，可以隐约发现个successful，开始改：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ibONGRATULATIONS. mgOU DECRfhzoTED TmxIS MESSAGE SUCCESSFULLfh. rgAS NOT TOO DIFFICULT EITmxERks usAS ITju rgELLks GOOD wlOfg. twNTER TmxIS oeEfhusORD AS SOLUTIONwk OfgzoRALEFzoNmxF.</span><br></pre></td></tr></table></figure>
+<p><strong>0x05</strong>:  接下来很好看了，this message job decryption 这几个单词都能看出来大概了，再改一波：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ibONGRATULATIONS. mgOU DECRYPTED THIS MESSAGE SUCCESSFULLY. rgAS NOT TOO DIFFICULT EITHERks usAS ITju rgELLks GOOD JOB. twNTER THIS oeEYusORD AS SOLUTIONwk OBPRALEFPNHF.</span><br></pre></td></tr></table></figure>
+<p>我们要的flag已经出来了，没有改过来的就是剩下的大写字母和标点符号,和懒得再改的小写字母（逃~）了，我宣布魔幻解题之旅结束\OVO/</p>
+<h3 id="Training-Math-Pyramid-Math-Training"><a href="#Training-Math-Pyramid-Math-Training" class="headerlink" title="Training: Math Pyramid (Math, Training)"></a>Training: Math Pyramid (Math, Training)</h3><p>这个emmm，反正不能用sqrt()它这一口气占了6个位置就剩仨位置也不够分啊，然后我们常说的根号几几几实际上是1/2次方也是0.5次方，椎体体积公式：</p>
+<p><code>V=1/3Sh</code></p>
+<p>V为体积，S为底面积，h为高（？？蜜汁开始讲初中数学）然后一顿计算之后导出来公式：</p>
+<p> <code>a^3/18^0.5</code> </p>
+<p>多了一位，小数因为整数位为0直接可以省略最后：</p>
+<p><code>a^3/18^.5</code></p>
+<p>无力吐槽.jpg</p>
+<h3 id="hi-Math"><a href="#hi-Math" class="headerlink" title="hi (Math)"></a>hi (Math)</h3><p>整个流程在题干已经举例了，也就是我们要求第n秒的hi总数就是求2,3,4…n+1这个等差数列的和。直接上公式：</p>
+<p><code>(2+time+1)*time)//2</code></p>
+<p>但是有一个小点要注意，在python中‘/’表示的是浮点数除法，而’//‘表示的是整数除法，如果在这里用‘/’会被直接转换为科学计数法，导致精度出现问题，所以要用’//‘避免这个问题</p>
+<p><strong>/</strong> 结果：</p>
+<p><code>1.5472209893556454e+26</code></p>
+<p><strong>//</strong>结果：</p>
+<p><code>154722098935564539692256152</code></p>
+<p>可以明显看到精度不同。</p>
+<h3 id="No-Escape-Exploit-PHP-MySQL"><a href="#No-Escape-Exploit-PHP-MySQL" class="headerlink" title="No Escape (Exploit, PHP, MySQL)"></a>No Escape (Exploit, PHP, MySQL)</h3><p>源码中更新选票的操作如下：</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$who = Common::getGet(<span class="string">'vote_for'</span>)</span><br><span class="line"> ......</span><br><span class="line">$query = <span class="string">"UPDATE noescvotes SET `$who`=`$who`+1 WHERE id=1"</span>;</span><br></pre></td></tr></table></figure>
+<p>可以看到这里的who也是直接把变量放在这里没有做处理,直接构造payload:bill`=111 –+注意那个不是单引号。</p>
+<h3 id="Stegano-Attachment-Stegano-Image-Training"><a href="#Stegano-Attachment-Stegano-Image-Training" class="headerlink" title="Stegano Attachment (Stegano, Image, Training)"></a>Stegano Attachment (Stegano, Image, Training)</h3><p>binwalk跑一下，发现里面藏了个.zip文件，直接改后缀解压缩得到结果</p>
+<h3 id="Limited-Access-Exploit-HTTP"><a href="#Limited-Access-Exploit-HTTP" class="headerlink" title="Limited Access (Exploit, HTTP)"></a>Limited Access (Exploit, HTTP)</h3><p>.htaccess文件实际上是Apache服务器中的一个配置文件，可以实现相关目录下的网页配置。例如：文件夹密码保护、用户自动重定向、自定义错误页面、改变你的文件扩展名、封禁特定IP地址的用户、只允许特定IP地址的用户、禁止目录列表，以及使用其他文件作为index文件等一些功能。 </p>
+<p>这道题因为.htaccess文件的设置导致我们需要登录才能访问protected文件，但是我们看到.htaccess文件内容如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">AuthUserFile .htpasswd</span><br><span class="line">AuthGroupFile /dev/null</span><br><span class="line">AuthName &quot;Authorization Required for the Limited Access Challenge&quot;</span><br><span class="line">AuthType Basic</span><br><span class="line">&lt;Limit GET&gt;</span><br><span class="line">require valid-user</span><br><span class="line">&lt;/Limit&gt;</span><br></pre></td></tr></table></figure>
+<p>注意最后，只有在我们以GET请求访问页面的时候，才需要登录，因此我们只要使用POST请求来访问页面就可以绕过这个限制了。</p>
+<h3 id="Training-Crypto-Substitution-I-Crypto-Training"><a href="#Training-Crypto-Substitution-I-Crypto-Training" class="headerlink" title="Training: Crypto - Substitution I (Crypto, Training)"></a>Training: Crypto - Substitution I (Crypto, Training)</h3><p>简单替换密码：简单替换密码是凯撒密码的变种，相对于凯撒密码每一位偏移量相同，简单替换密码则是采用不同的偏移量来进行加密，增加了破解难度。不过在英文中，每一位字母的出现频率是不同的，有人专门统计过字母出现的频率如下：</p>
+<table>
+<thead>
+<tr>
+<th><strong>a</strong></th>
+<th>8.167%</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>b</strong></td>
+<td>1.492%</td>
+</tr>
+<tr>
+<td><strong>c</strong></td>
+<td>2.782%</td>
+</tr>
+<tr>
+<td><strong>d</strong></td>
+<td>4.253%</td>
+</tr>
+<tr>
+<td><strong>e</strong></td>
+<td>12.702%</td>
+</tr>
+<tr>
+<td><strong>f</strong></td>
+<td>2.228%</td>
+</tr>
+<tr>
+<td><strong>g</strong></td>
+<td>2.015%</td>
+</tr>
+<tr>
+<td><strong>h</strong></td>
+<td>6.094%</td>
+</tr>
+<tr>
+<td><strong>i</strong></td>
+<td>6.966%</td>
+</tr>
+<tr>
+<td><strong>j</strong></td>
+<td>0.153%</td>
+</tr>
+<tr>
+<td><strong>k</strong></td>
+<td>0.772%</td>
+</tr>
+<tr>
+<td><strong>l</strong></td>
+<td>4.025%</td>
+</tr>
+<tr>
+<td><strong>m</strong></td>
+<td>2.406%</td>
+</tr>
+<tr>
+<td><strong>n</strong></td>
+<td>6.749%</td>
+</tr>
+<tr>
+<td><strong>o</strong></td>
+<td>7.507%</td>
+</tr>
+<tr>
+<td><strong>p</strong></td>
+<td>1.929%</td>
+</tr>
+<tr>
+<td><strong>q</strong></td>
+<td>0.095%</td>
+</tr>
+<tr>
+<td><strong>r</strong></td>
+<td>5.987%</td>
+</tr>
+<tr>
+<td><strong>s</strong></td>
+<td>6.327%</td>
+</tr>
+<tr>
+<td><strong>t</strong></td>
+<td>9.056%</td>
+</tr>
+<tr>
+<td><strong>u</strong></td>
+<td>2.758%</td>
+</tr>
+<tr>
+<td><strong>v</strong></td>
+<td>0.978%</td>
+</tr>
+<tr>
+<td><strong>w</strong></td>
+<td>2.360%</td>
+</tr>
+<tr>
+<td><strong>x</strong></td>
+<td>0.150%</td>
+</tr>
+<tr>
+<td><strong>y</strong></td>
+<td>1.974%</td>
+</tr>
+<tr>
+<td><strong>z</strong></td>
+<td>0.074%</td>
+</tr>
+</tbody>
+</table>
+<p>因此可以通过统计密文中字母的频率，对照字母频率表进行替换，然后在于字典比对进行破解，直接上解密网站：</p>
+<p><a href="https://quipqiup.com/" target="_blank" rel="noopener">https://quipqiup.com/</a></p>
+<h3 id="Zebra-Training-Encoding-Stegano"><a href="#Zebra-Training-Encoding-Stegano" class="headerlink" title="Zebra (Training, Encoding, Stegano)"></a>Zebra (Training, Encoding, Stegano)</h3><p>图片一打开就能看到🦓身上有个条形码，PS选手上线直接截取下来找个网站识别一下就可以了。</p>
+<h3 id="Training-Crypto-Substitution-II-Crypto-Training"><a href="#Training-Crypto-Substitution-II-Crypto-Training" class="headerlink" title="Training: Crypto - Substitution II (Crypto, Training)"></a>Training: Crypto - Substitution II (Crypto, Training)</h3><p>这题解题思路后面和Training: Crypto - Digraphs (Crypto, Training)很像，前面稍微有些不同。我们在I里面已经知道简单替换密码的原理以及运用字母频率破解的方法，这里把加密空间扩大，和之前的一个扩大凯撒加密加密空间的手法是一样的。最终我们还是要以统计字符频率为切入点。解密前我们先整理一下线索：</p>
+<p>1.这个明文是英文的，而且是英文句子。</p>
+<p>2.英文句子的特点，都是英文字母且每个单词之间以空格区分。</p>
+<p>ok，我们上来先统计一下每个密文字符的频率，以我拿到的密文为主，我统计出来的概率如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[(&apos;5F&apos;, 0.1724137931034483), (&apos;8C&apos;, 0.08189655172413793), (&apos;8B&apos;, 0.07327586206896551), (&apos;9A&apos;, 0.07327586206896551), (&apos;21&apos;, 0.06465517241379311), (&apos;A7&apos;, 0.05172413793103448), (&apos;54&apos;, 0.04741379310344827), (&apos;5A&apos;, 0.04741379310344827), (&apos;07&apos;, 0.04741379310344827), (&apos;30&apos;, 0.04310344827586207), (&apos;6E&apos;, 0.034482758620689655), (&apos;C8&apos;, 0.02586206896551724), (&apos;5B&apos;, 0.02586206896551724), (&apos;3A&apos;, 0.02586206896551724), (&apos;0D&apos;, 0.02586206896551724), (&apos;1D&apos;, 0.02586206896551724), (&apos;AC&apos;, 0.021551724137931036), (&apos;D3&apos;, 0.017241379310344827), (&apos;F3&apos;, 0.017241379310344827), (&apos;E5&apos;, 0.01293103448275862), (&apos;7A&apos;, 0.01293103448275862), (&apos;32&apos;, 0.008620689655172414), (&apos;26&apos;, 0.008620689655172414), (&apos;FC&apos;, 0.008620689655172414), (&apos;6D&apos;, 0.004310344827586207), (&apos;D6&apos;, 0.004310344827586207), (&apos;9F&apos;, 0.004310344827586207), (&apos;34&apos;, 0.004310344827586207), (&apos;7F&apos;, 0.004310344827586207), (&apos;04&apos;, 0.004310344827586207)]</span><br></pre></td></tr></table></figure>
+<p>稍微有点绝望的是，有很多字符概率是一样的，而且密文有点短，很可能有很大偏差。一个一个试会很麻烦。</p>
+<p>但是我们知道的是单词与单词之间以空格分隔，那么空格出现的概率应该很高，所以大胆猜测一下5F就是空格。</p>
+<p>另外几个高概率字符还是可以对比概率表的字符试一下，最后几个高概率对应如下：</p>
+<p>8C：o</p>
+<p>8B：e</p>
+<p>9A：t</p>
+<p>21：i</p>
+<p>空格分开之后配合这些试出来的高概率字符可以很好的猜测出，没错，第一个单词又双叒叕是congratulations，嗯然后开始Training: Crypto - Digraphs (Crypto, Training)的套路就好了，所以这题关键点就是空格+高概率字符+瞎猜。</p>
+<p>答完这题Score变成520 Global Rank变成6666了哈哈哈哈哈哈哈，我不管我要截图纪念一下！</p>
+<p><img src="https://res.cloudinary.com/dt69vpleo/image/upload/v1541926308/5206666.png" alt=""></p>
+
+            
+
+        </div>
+    </div>
+    <div id="post-footer" class="post-footer main-content-wrap">
+        
+            <div class="post-footer-tags">
+                <span class="text-color-light text-small">标签</span><br>
+                
+    <a class="tag tag--primary tag--small t-link" href="/tags/wechall/">wechall</a>
+
+            </div>
+        
+        
+            <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--disabled">
+                
+                    <i class="fa fa-angle-left" aria-hidden="true"></i>
+                    <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                </a>
+            </li>
+            <li class="post-action">
+                
+                    
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2018/11/05/WeChall-write-up-part-2/" data-tooltip="WeChall write up part 2" aria-label="下一篇: WeChall write up part 2">
+                
+                    <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                    <i class="fa fa-angle-right" aria-hidden="true"></i>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a class="post-action-btn btn btn--default btn-open-shareoptions" href="#btn-open-shareoptions" aria-label="Diesen Beitrag teilen">
+                <i class="fa fa-share-alt" aria-hidden="true"></i>
+            </a>
+        </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a class="post-action-btn btn btn--default" target="new" href="https://www.facebook.com/sharer/sharer.php?u=http://AGGmie.github.io/2018/11/11/Wechall-write-up-part-3/" title="分享到 Facebook">
+                    <i class="fab fa-facebook" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a class="post-action-btn btn btn--default" target="new" href="https://twitter.com/intent/tweet?text=http://AGGmie.github.io/2018/11/11/Wechall-write-up-part-3/" title="分享到 Twitter">
+                    <i class="fab fa-twitter" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a class="post-action-btn btn btn--default" target="new" href="https://plus.google.com/share?url=http://AGGmie.github.io/2018/11/11/Wechall-write-up-part-3/" title="分享到 Google+">
+                    <i class="fab fa-google-plus" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a class="post-action-btn btn btn--default" target="new" href="http://service.weibo.com/share/share.php?&amp;title=http://AGGmie.github.io/2018/11/11/Wechall-write-up-part-3/" title="分享到 Weibo">
+                    <i class="fab fa-weibo" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a class="post-action-btn btn btn--default" target="new" href="http://connect.qq.com/widget/shareqq/index.html?url=http://AGGmie.github.io/2018/11/11/Wechall-write-up-part-3/&amp;title=Wechall write up part 3" title="分享到 QQ">
+                    <i class="fab fa-qq" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+        
+            
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#table-of-contents" aria-label="目录">
+            
+                <i class="fa fa-list" aria-hidden="true"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+        
+        
+            
+        
+    </div>
+</article>
+
+
+
+                <footer id="footer" class="main-content-wrap">
+    <span class="copyrights">
+        Copyrights &copy; 2018 AGGmie. All Rights Reserved.
+    </span>
+</footer>
+
+            </div>
+            
+                <div id="bottom-bar" class="post-bottom-bar" data-behavior="4">
+                    <div class="post-actions-wrap">
+    <nav>
+        <ul class="post-actions post-action-nav">
+            <li class="post-action">
+                
+                    <a class="post-action-btn btn btn--disabled">
+                
+                    <i class="fa fa-angle-left" aria-hidden="true"></i>
+                    <span class="hide-xs hide-sm text-small icon-ml">上一篇</span>
+                </a>
+            </li>
+            <li class="post-action">
+                
+                    
+                    <a class="post-action-btn btn btn--default tooltip--top" href="/2018/11/05/WeChall-write-up-part-2/" data-tooltip="WeChall write up part 2" aria-label="下一篇: WeChall write up part 2">
+                
+                    <span class="hide-xs hide-sm text-small icon-mr">下一篇</span>
+                    <i class="fa fa-angle-right" aria-hidden="true"></i>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    <ul class="post-actions post-action-share">
+        <li class="post-action hide-lg hide-md hide-sm">
+            <a class="post-action-btn btn btn--default btn-open-shareoptions" href="#btn-open-shareoptions" aria-label="Diesen Beitrag teilen">
+                <i class="fa fa-share-alt" aria-hidden="true"></i>
+            </a>
+        </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a class="post-action-btn btn btn--default" target="new" href="https://www.facebook.com/sharer/sharer.php?u=http://AGGmie.github.io/2018/11/11/Wechall-write-up-part-3/" title="分享到 Facebook">
+                    <i class="fab fa-facebook" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a class="post-action-btn btn btn--default" target="new" href="https://twitter.com/intent/tweet?text=http://AGGmie.github.io/2018/11/11/Wechall-write-up-part-3/" title="分享到 Twitter">
+                    <i class="fab fa-twitter" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a class="post-action-btn btn btn--default" target="new" href="https://plus.google.com/share?url=http://AGGmie.github.io/2018/11/11/Wechall-write-up-part-3/" title="分享到 Google+">
+                    <i class="fab fa-google-plus" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a class="post-action-btn btn btn--default" target="new" href="http://service.weibo.com/share/share.php?&amp;title=http://AGGmie.github.io/2018/11/11/Wechall-write-up-part-3/" title="分享到 Weibo">
+                    <i class="fab fa-weibo" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+            
+            
+            <li class="post-action hide-xs">
+                <a class="post-action-btn btn btn--default" target="new" href="http://connect.qq.com/widget/shareqq/index.html?url=http://AGGmie.github.io/2018/11/11/Wechall-write-up-part-3/&amp;title=Wechall write up part 3" title="分享到 QQ">
+                    <i class="fab fa-qq" aria-hidden="true"></i>
+                </a>
+            </li>
+        
+        
+            
+        
+        <li class="post-action">
+            
+                <a class="post-action-btn btn btn--default" href="#table-of-contents" aria-label="目录">
+            
+                <i class="fa fa-list" aria-hidden="true"></i>
+            </a>
+        </li>
+    </ul>
+</div>
+
+
+                </div>
+                <div id="share-options-bar" class="share-options-bar" data-behavior="4">
+    <i id="btn-close-shareoptions" class="fa fa-times"></i>
+    <ul class="share-options">
+        
+            
+            
+            <li class="share-option">
+                <a class="share-option-btn" target="new" href="https://www.facebook.com/sharer/sharer.php?u=http://AGGmie.github.io/2018/11/11/Wechall-write-up-part-3/">
+                    <i class="fab fa-facebook" aria-hidden="true"></i><span>分享到 Facebook</span>
+                </a>
+            </li>
+        
+            
+            
+            <li class="share-option">
+                <a class="share-option-btn" target="new" href="https://twitter.com/intent/tweet?text=http://AGGmie.github.io/2018/11/11/Wechall-write-up-part-3/">
+                    <i class="fab fa-twitter" aria-hidden="true"></i><span>分享到 Twitter</span>
+                </a>
+            </li>
+        
+            
+            
+            <li class="share-option">
+                <a class="share-option-btn" target="new" href="https://plus.google.com/share?url=http://AGGmie.github.io/2018/11/11/Wechall-write-up-part-3/">
+                    <i class="fab fa-google-plus" aria-hidden="true"></i><span>分享到 Google+</span>
+                </a>
+            </li>
+        
+            
+            
+            <li class="share-option">
+                <a class="share-option-btn" target="new" href="http://service.weibo.com/share/share.php?&amp;title=http://AGGmie.github.io/2018/11/11/Wechall-write-up-part-3/">
+                    <i class="fab fa-weibo" aria-hidden="true"></i><span>分享到 Weibo</span>
+                </a>
+            </li>
+        
+            
+            
+            <li class="share-option">
+                <a class="share-option-btn" target="new" href="http://connect.qq.com/widget/shareqq/index.html?url=http://AGGmie.github.io/2018/11/11/Wechall-write-up-part-3/&amp;title=Wechall write up part 3">
+                    <i class="fab fa-qq" aria-hidden="true"></i><span>分享到 QQ</span>
+                </a>
+            </li>
+        
+    </ul>
+</div>
+
+            
+        </div>
+        
+
+
+    
+        
+    
+
+<div id="about">
+    <div id="about-card">
+        <div id="about-btn-close">
+            <i class="fa fa-times"></i>
+        </div>
+        
+            <img id="about-card-picture" src="/assets/images/1.jpg" alt="作者的图片">
+        
+            <h4 id="about-card-name">AGGmie</h4>
+        
+            <div id="about-card-bio"><p>梦想是征服星辰大海！<br>个人邮箱：<a href="mailto:AGGmie@outlook.com">AGGmie@outlook.com</a></p>
+</div>
+        
+        
+            <div id="about-card-job">
+                <i class="fa fa-briefcase"></i>
+                <br>
+                <p>student</p>
+
+            </div>
+        
+        
+            <div id="about-card-location">
+                <i class="fa fa-map-marker-alt"></i>
+                <br>
+                China
+            </div>
+        
+    </div>
+</div>
+
+        
+        
+<div id="cover" style="background-image:url('/assets/images/cover.jpg');"></div>
+        <!--SCRIPTS-->
+<script src="/assets/js/script-vufjrm3fmbuttogo1hxuu0w9w0sesk5iyysjuguc2hdhufot9szxg8twijry.min.js"></script>
+<!--SCRIPTS END-->
+
+    
+
+
+
+    </body>
+</html>
